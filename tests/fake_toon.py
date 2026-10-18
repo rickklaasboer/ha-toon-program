@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from urllib.parse import unquote
 import uuid
 from xml.etree import ElementTree
 
@@ -35,6 +36,16 @@ def _element_to_json(element: ElementTree.Element) -> dict:
     return out
 
 
+def _strict_query(request: web.Request) -> dict[str, str]:
+    """Decode like an unknown device: percent-escapes only, "+" stays a plus."""
+    return {
+        unquote(key): unquote(value)
+        for key, _, value in (
+            pair.partition("=") for pair in request.rel_url.raw_query_string.split("&") if pair
+        )
+    }
+
+
 class FakeToon:
     """Holds program JSON, states, info; `ignore_writes` simulates a Toon that says ok and does nothing."""
 
@@ -57,6 +68,7 @@ class FakeToon:
         self.delay_scheme_change = False
         self._pending_state: str | None = None
         self.requests: list[tuple[str, dict[str, str]]] = []
+        self.raw_queries: list[str] = []
         self.app = web.Application()
         self.app.router.add_get("/hcb_config", self.hcb_config)
         self.app.router.add_get("/happ_thermstat", self.happ_thermstat)
@@ -70,7 +82,8 @@ class FakeToon:
         return [e for e in self._entries if e["type"][0] == "holiday"]
 
     async def hcb_config(self, request: web.Request) -> web.Response:
-        query = dict(request.query)
+        self.raw_queries.append(request.rel_url.raw_query_string)
+        query = _strict_query(request)
         self.requests.append(("hcb_config", query))
         action = query.get("action")
         if action == "getObjectConfigTree":
@@ -111,7 +124,8 @@ class FakeToon:
         return _error("no handler")
 
     async def happ_thermstat(self, request: web.Request) -> web.Response:
-        query = dict(request.query)
+        self.raw_queries.append(request.rel_url.raw_query_string)
+        query = _strict_query(request)
         self.requests.append(("happ_thermstat", query))
         action = query.get("action")
         if self.error:

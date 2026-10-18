@@ -6,8 +6,10 @@ import asyncio
 from contextlib import contextmanager
 import json
 from typing import Any
+from urllib.parse import quote
 
 import aiohttp
+from yarl import URL
 
 from .program import Program, ProgramError, build_config_xml, parse_program
 
@@ -42,9 +44,13 @@ class ToonClient:
 
     async def _get(self, path: str, params: dict[str, Any], *, has_result: bool) -> dict:
         try:
-            async with self._session.get(
-                f"{self._base}{path}", params=params, timeout=TIMEOUT
-            ) as resp:
+            # yarl would encode a space as "+"; the device is only verified with %20.
+            query = "&".join(
+                f"{quote(key, safe='')}={quote(str(value), safe='')}"
+                for key, value in params.items()
+            )
+            url = URL(f"{self._base}{path}?{query}", encoded=True)
+            async with self._session.get(url, timeout=TIMEOUT) as resp:
                 resp.raise_for_status()
                 text = await resp.text()
         except (aiohttp.ClientError, TimeoutError) as err:

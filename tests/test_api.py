@@ -71,6 +71,16 @@ async def test_write_program_applies(fake, make_client):
     assert ("6", "40") in hours
 
 
+async def test_program_xml_is_percent_encoded_with_20(fake, make_client):
+    client = await make_client(fake)
+    program = await client.get_program()
+    await client.write_program(program)
+    raw = next(r for r in fake.raw_queries if "action=setObjectConfig" in r)
+    assert "%20" in raw
+    assert "+" not in raw
+    assert await client.get_program() == program
+
+
 async def test_write_program_detects_ignored_write(fake, make_client):
     client = await make_client(fake)
     program = await client.get_program()
