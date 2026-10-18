@@ -1,120 +1,167 @@
 # Toon Program
 
-Home Assistant integration to view and edit the weekly heating program of a rooted Toon thermostat, plus a Lovelace card for it. Without this, the program can only be changed on the Toon itself.
+- [Introduction](#introduction)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Entities](#entities)
+- [The Card](#the-card)
+- [Services](#services)
+- [How It Works](#how-it-works)
+- [Known Limitations](#known-limitations)
 
-The Toon stays the source of truth and keeps running its program when Home Assistant is down. Nothing is installed on the Toon. It runs side by side with `toon_climate`.
+<a name="introduction"></a>
+## Introduction
 
-## Requirements
+A rooted Toon thermostat runs its own weekly heating program, but out of the box you can only change that program on the Toon itself. Toon Program lets you view and edit the program from Home Assistant instead, using a Lovelace card that is bundled with the integration.
 
-A rooted Toon with its local web API reachable from Home Assistant over plain HTTP (no authentication). Eneco cloud accounts are not supported.
+The Toon remains the source of truth. Home Assistant only edits the program; the Toon keeps running it, even while Home Assistant is offline. Nothing needs to be installed on the Toon, and the integration runs alongside `toon_climate` without conflict.
 
+To use Toon Program, you need a rooted Toon whose local web API is reachable from Home Assistant over plain HTTP. The integration does not use the Eneco cloud.
+
+<a name="installation"></a>
 ## Installation
 
-### HACS (custom repository)
+The easiest way to install Toon Program is through HACS. Open HACS, choose **Custom repositories** from the menu, and add the following repository with the category **Integration**:
 
-1. In HACS, open the menu and choose Custom repositories.
-2. Add `https://github.com/rickklaasboer/ha-toon-program` with category Integration.
-3. Install Toon Program and restart Home Assistant.
+```text
+https://github.com/rickklaasboer/ha-toon-program
+```
 
-### Manual
+Next, install **Toon Program** and restart Home Assistant.
 
-Copy `custom_components/toon_program` to the `custom_components` folder of your Home Assistant configuration and restart Home Assistant.
+If you would rather install the integration manually, copy the `custom_components/toon_program` directory into the `custom_components` directory of your Home Assistant configuration and restart Home Assistant.
 
+<a name="configuration"></a>
 ## Configuration
 
-Add the integration under Settings, Devices & services. The setup asks for:
+Once installed, add the integration via **Settings > Devices & services > Add integration**. Home Assistant will ask for two values:
 
-- Host: the address of the Toon.
-- Port: the web API port of the Toon (default 80).
+- **Host**: the IP address or hostname of your Toon.
+- **Port**: the port of the Toon's web API. In most cases, this is `80`.
 
-Each Toon is one config entry. The Toon is polled every 60 seconds.
+Each Toon is configured as its own entry, so you may add more than one. The integration polls every Toon once a minute.
 
+<a name="entities"></a>
 ## Entities
 
-- `sensor.toon_program`: the active preset (comfort, home, sleep, away, vacation). Attributes hold the week program, the next switch and the program hash used by the card and services.
-- `switch.toon_program_enabled`: turns the Toon's program on or off. A temporary override counts as on.
+Every Toon receives two entities:
 
-These are the ids with Home Assistant set to English. Entity ids are created from the translated names, so with Home Assistant in Dutch they are `sensor.toon_weekprogramma` and `switch.toon_programma`.
+| Entity | Description |
+| --- | --- |
+| `sensor.toon_program` | The active preset: `comfort`, `home`, `sleep`, `away` or `vacation`. Its attributes contain the full week program, the next switch time and the program hash used by the card and services. |
+| `switch.toon_program_enabled` | Turns the Toon's program on or off. A temporary override on the Toon counts as on. |
 
-## Card
+> [!NOTE]
+> Home Assistant derives entity IDs from the translated entity names. When your Home Assistant instance runs in Dutch, these entities are named `sensor.toon_weekprogramma` and `switch.toon_programma` instead.
 
-The card is bundled with the integration and registered automatically, no dashboard resource is needed. It shows the week, a day editor (move, add and remove switch times, change presets, copy a day to other days), vacations and the program switch.
+<a name="the-card"></a>
+## The Card
+
+The card is shipped with the integration and registered automatically, so you do not need to add a dashboard resource. To place it on a dashboard, add the following card:
+
+```yaml
+type: custom:toon-program-card
+```
+
+The card shows the week at a glance. Tapping a day opens the day editor, where you can move, add and remove switch times, change presets and copy a day to other days. Changes stay local until you press **Save**. The card also lets you plan a vacation and turn the program on or off.
+
+By default, the card uses the first Toon it finds. If you have more than one Toon, you may point the card at a specific one using the `entity` option:
 
 ```yaml
 type: custom:toon-program-card
 entity: sensor.toon_program
 ```
 
-`entity` is optional. Without it the card uses the first `toon_program` entity. Card text follows the Home Assistant language (Dutch and English).
+The card follows the language of your Home Assistant user and is available in Dutch and English.
 
-If the card shows "Configuration error" right after installing, the frontend still runs from a cache made before the integration was added. Reload the page. In the Home Assistant Companion app, use Settings, Companion app, Debugging, Reset frontend cache, then restart the app.
+> [!NOTE]
+> If the card shows "Configuration error" right after installing the integration, your browser is still using a cached copy of the frontend. Reloading the page solves this. In the Companion app, go to **Settings > Companion app > Debugging**, choose **Reset frontend cache** and restart the app.
 
+<a name="services"></a>
 ## Services
 
-All services take `device_id`, the Toon device. Days are numbered as the Toon does: 0 = Sunday to 6 = Saturday.
+The card uses the following services, but you are free to call them yourself, for example from a script. Every service requires the `device_id` of the Toon.
 
 | Service | Fields |
 | --- | --- |
-| `toon_program.set_day` | `device_id`, `day`, `points` (list of `{time: "HH:MM", state: 0-3}`), `program_hash` |
-| `toon_program.copy_day` | `device_id`, `source`, `targets` (list of days), `program_hash` |
-| `toon_program.set_vacation` | `device_id`, `start`, `end`, `temperature` (6 to 30, step 0.5) |
+| `toon_program.set_day` | `device_id`, `day`, `points`, `program_hash` |
+| `toon_program.copy_day` | `device_id`, `source`, `targets`, `program_hash` |
+| `toon_program.set_vacation` | `device_id`, `start`, `end`, `temperature` |
 | `toon_program.remove_vacation` | `device_id`, `entry_id` |
 
-States: 0 comfort, 1 home, 2 sleep, 3 away. `program_hash` is the `program_hash` attribute of `sensor.toon_program`. If the program on the Toon changed since that value was read, the call fails and nothing is written.
+Days are numbered the way the Toon numbers them: `0` is Sunday and `6` is Saturday. Presets are numbered as well: `0` is comfort, `1` home, `2` sleep and `3` away. For example, the following call makes Wednesday start at 06:40 and go to sleep at 23:00:
 
-## How it works
+```yaml
+action: toon_program.set_day
+data:
+  device_id: 0123456789abcdef0123456789abcdef
+  day: 3
+  points:
+    - time: "06:40"
+      state: 1
+    - time: "23:00"
+      state: 2
+  program_hash: "{{ state_attr('sensor.toon_program', 'program_hash') }}"
+```
 
-### Where the program lives
+The `program_hash` tells the integration which version of the program your change is based on. If the program was changed in the meantime, for example on the Toon itself, the call fails and nothing is written.
 
-The Toon stores its week program as the config object `thermostatProgram` of its `happ_thermstat` package. The program is a closed chain of entries. Each entry has a start (day, hour, minute), an end and a preset (`targetState`), and the last entry of the week runs into the first. A planned vacation is one extra entry of type `holiday` in the same object. The preset temperatures live in a separate object, `thermostatStates`.
+When planning a vacation, `start` and `end` are local date-times, and `temperature` is a value between 6 and 30 degrees in steps of 0.5. Calling `set_vacation` while a vacation is already planned updates that vacation.
 
-### Reading
+<a name="how-it-works"></a>
+## How It Works
 
-Every 60 seconds the integration reads, over the Toon's local web API:
+<a name="where-the-program-lives"></a>
+### Where the Program Lives
 
-- the program and the preset temperatures (`/hcb_config?action=getObjectConfigTree`),
-- the live status: active preset, next switch, program on or off (`/happ_thermstat?action=getThermostatInfo`),
-- the planned vacations (`/happ_thermstat?action=GetHolidays`).
+The Toon stores its week program as the `thermostatProgram` config object of its `happ_thermstat` package. The program is a closed chain of entries: each entry has a start day and time, an end day and time, and a preset. The last entry of the week runs into the first one. A planned vacation is stored as one additional entry of type `holiday` in the same object, while the preset temperatures live in a separate object named `thermostatStates`.
 
-The result is exposed on the program sensor. The card reads everything from that sensor.
+<a name="reading-the-program"></a>
+### Reading the Program
 
-### From entries to switch times
+Once a minute, the integration reads three things from the Toon's local web API:
 
-The card and the services work with switch times per day, like the Toon's own screen: "from 06:20 Home, from 23:00 Sleep". Each entry's start becomes a switch time on its start day, so the Saturday 23:30 to Sunday 09:30 block belongs to Saturday. A day without switch times keeps the preset that was active at midnight.
+- The program and the preset temperatures, via `/hcb_config?action=getObjectConfigTree`.
+- The live status, such as the active preset and the next switch time, via `/happ_thermstat?action=getThermostatInfo`.
+- The planned vacations, via `/happ_thermstat?action=GetHolidays`.
 
-When writing, the integration sorts all switch times of the week and turns them back into entries: each one runs until the next switch time, and the last one of the week wraps around to the first. Neighbouring switch times with the same preset are merged.
+All of this is exposed on the program sensor, which is where the card gets its data from.
 
-### Writing
+<a name="switch-times"></a>
+### Switch Times
 
-A change goes through these steps, one write at a time:
+The Toon thinks in entries, but the card and services think in switch times per day, just like the Toon's own screen: "from 06:20 Home, from 23:00 Sleep". Each entry's start becomes a switch time on the day it starts, so a Saturday 23:30 to Sunday 09:30 block belongs to Saturday. A day without any switch times simply continues the preset that was active at midnight.
 
-1. Read the program from the Toon again.
-2. Compare it with the `program_hash` the change was based on. If the program was changed in the meantime (for example on the Toon itself), stop with an error and refresh, so nothing made on the Toon is overwritten.
-3. Apply the change and validate the week: valid times and presets, no two switch times at the same moment, at least one switch time in the week.
-4. Build the XML the way the Toon's own screen does and send it with `/hcb_config?action=setObjectConfig`.
-5. Read the program back and compare it with what was sent.
+When writing a change, the integration sorts every switch time of the week and turns them back into entries. Each entry runs until the next switch time, and the last one wraps around to the first. Neighbouring switch times with the same preset are merged.
 
-The last step exists because the Toon answers `{"result":"ok"}` even when it ignored a write, for example when the XML lacks the `<Config>` root or the object's `uuid`. A write also replaces the whole object, so every field that was read is sent back, and vacation entries are passed through unchanged. A mismatch raises an error in Home Assistant.
+<a name="writing-the-program"></a>
+### Writing the Program
 
-### Vacations and program switch
+Every change goes through the same steps, and only one change is written at a time:
 
-Vacations use the Toon's own actions: `SetHoliday` (start, end, temperature), `RemoveHoliday` and `GetHolidays`. Turning the program on or off uses `changeSchemeState`. Both are read back afterwards, a few times with a short pause, because the Toon may apply them with a small delay.
+1. The program is read from the Toon again.
+2. Its hash is compared with the `program_hash` of the call. If they differ, the integration refreshes its data and the call fails, so a change made on the Toon is never overwritten.
+3. The change is applied and the week is validated. Times and presets must be valid, no two switch times may share the same moment, and the week must contain at least one switch time.
+4. The program is converted to XML in the same format the Toon's own screen uses, and sent to `/hcb_config?action=setObjectConfig`.
+5. The program is read back and compared with what was sent. If they do not match, the call fails.
 
-### Card
+That last step matters, because the Toon replies `{"result":"ok"}` even when it ignores a write. This happens, for instance, when the XML is missing its `<Config>` root or the object's `uuid`. A write also replaces the entire object on the Toon, so the integration sends back every field it read, including vacation entries.
 
-The card is a single JavaScript file inside the integration. On startup the integration serves it at `/toon_program/toon-program-card.js` and adds it to every page, so no dashboard resource is needed. The card keeps edits local until you save, then calls one service. Errors come back as translated messages. When the program changed on the Toon in the meantime, the card offers to reload.
+<a name="vacations-and-the-program-switch"></a>
+### Vacations and the Program Switch
 
-## Known limitations
+Vacations are managed through the Toon's own `SetHoliday`, `RemoveHoliday` and `GetHolidays` actions, and the program is turned on or off with `changeSchemeState`. Since the Toon may apply these with a short delay, the integration reads the result back a few times before deciding whether the change was applied.
 
-- One vacation at a time, like the Toon's own screen. Setting a vacation while one exists updates it.
-- The vacation temperature is stored as the temperature of the Toon's state 4. It stays at that value after the vacation is removed.
-- Preset temperatures are shown but cannot be edited.
-- Whether the Toon's own screen shows a change made from Home Assistant without a reboot is not yet verified.
+<a name="known-limitations"></a>
+## Known Limitations
 
-## Disclaimer
+- Only one vacation can be planned at a time, just like on the Toon's own screen.
+- The Toon stores the vacation temperature as the temperature of its fifth preset. That temperature keeps its value after the vacation has been removed.
+- Preset temperatures are shown, but cannot be changed from Home Assistant.
+- It has not yet been verified whether the Toon's own screen picks up a change made from Home Assistant without a reboot.
 
-Not affiliated with Eneco. Use at your own risk and keep a backup of your Toon's configuration.
+Toon Program is not affiliated with Eneco. Keep a backup of your Toon's configuration before you start making changes.
 
 ## License
 
-MIT
+Toon Program is open-source software licensed under the [MIT license](LICENSE).
