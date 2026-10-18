@@ -83,7 +83,8 @@ def _coordinator(hass: HomeAssistant, device_id: str) -> ToonProgramCoordinator:
 
 async def _guarded(coordinator: ToonProgramCoordinator, action: Callable[[], Awaitable[None]]) -> None:
     try:
-        await action()
+        async with coordinator.write_lock:
+            await action()
     except ProgramError as err:
         raise _error(err.key, ServiceValidationError) from err
     except ToonWriteNotApplied as err:
@@ -96,15 +97,16 @@ async def _guarded(coordinator: ToonProgramCoordinator, action: Callable[[], Awa
 async def _fresh_program(coordinator: ToonProgramCoordinator, expected_hash: str) -> Program:
     program = await coordinator.client.get_program()
     if program_hash(program) != expected_hash:
+        await coordinator.async_refresh()
         raise _error("program_changed")
     return program
 
 
 def _parse_points(program: Program, day: int, points: list[dict]) -> list[tuple[int, int]]:
     """Validate submitted points before merging would hide duplicates."""
-    allowed = set(EDITABLE_STATES)
-    if any(p.day == day and p.state == STATE_VACATION for p in program.weekly):
-        allowed.add(STATE_VACATION)
+    vacation_minutes = {
+        p.minute for p in program.weekly if p.day == day and p.state == STATE_VACATION
+    }
     parsed: list[tuple[int, int]] = []
     for point in points:
         match = TIME_RE.match(point["time"])
@@ -113,7 +115,10 @@ def _parse_points(program: Program, day: int, points: list[dict]) -> list[tuple[
         minute = int(match[1]) * 60 + int(match[2])
         if int(match[2]) > 59 or minute >= MINUTES_PER_DAY:
             raise ProgramError("invalid_time")
-        if point["state"] not in allowed:
+        state = point["state"]
+        if state not in EDITABLE_STATES and not (
+            state == STATE_VACATION and minute in vacation_minutes
+        ):
             raise ProgramError("invalid_state")
         parsed.append((minute, point["state"]))
     if len({minute for minute, _ in parsed}) != len(parsed):
@@ -145,6 +150,11 @@ async def _copy_day(call: ServiceCall) -> None:
 
     async def action() -> None:
         program = await _fresh_program(coordinator, call.data["program_hash"])
+        if any(
+            p.day == call.data["source"] and p.state == STATE_VACATION
+            for p in program.weekly
+        ):
+            raise ProgramError("invalid_state")
         updated = copy_day(program, call.data["source"], call.data["targets"])
         validate(updated)
         await coordinator.client.write_program(updated)
@@ -171,9 +181,13 @@ async def _set_vacation(call: ServiceCall) -> None:
 
 async def _remove_vacation(call: ServiceCall) -> None:
     coordinator = _coordinator(call.hass, call.data["device_id"])
-    await _guarded(
-        coordinator, lambda: coordinator.client.remove_holiday(call.data["entry_id"])
-    )
+    async def action() -> None:
+        holidays = await coordinator.client.get_holidays()
+        if not any(h["entryId"] == call.data["entry_id"] for h in holidays):
+            raise _error("unknown_vacation", ServiceValidationError)
+        await coordinator.client.remove_holiday(call.data["entry_id"])
+
+    await _guarded(coordinator, action)
 
 
 def async_register_services(hass: HomeAssistant) -> None:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from datetime import timedelta
 import logging
@@ -47,6 +48,7 @@ class ToonProgramCoordinator(DataUpdateCoordinator[ToonData]):
             update_interval=timedelta(seconds=60),
         )
         self.client = client
+        self.write_lock = asyncio.Lock()
 
     async def _async_update_data(self) -> ToonData:
         try:

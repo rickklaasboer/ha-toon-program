@@ -4,7 +4,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.util import dt as dt_util
 
 from custom_components.toon_program.const import DOMAIN
-from custom_components.toon_program.program import days_view, parse_program
+from custom_components.toon_program.program import days_view, parse_program, program_hash
 from tests.conftest import PROGRAM_UUID
 
 SENSOR = "sensor.toon_program"
@@ -65,6 +65,7 @@ async def test_set_day_stale_hash(hass, mock_entry, fake):
         await _set_day(hass, device_id, 3, [{"time": "07:00", "state": 0}], "stale")
     assert err.value.translation_key == "program_changed"
     assert fake.program is before
+    assert _hash(hass) == program_hash(parse_program(fake.program))
     assert not [r for r in fake.requests if r[1].get("action") == "setObjectConfig"]
 
 
@@ -91,6 +92,7 @@ async def test_set_day_cannot_connect(hass, mock_entry, fake, toon_server):
         ([{"time": "07:00", "state": 0}, {"time": "07:00", "state": 0}], "duplicate_time"),
         ([{"time": "7h", "state": 0}], "invalid_time"),
         ([{"time": "24:00", "state": 0}], "invalid_time"),
+        ([{"time": "07:75", "state": 0}], "invalid_time"),
         ([{"time": "07:00", "state": 5}], "invalid_state"),
         ([{"time": "07:00", "state": 4}], "invalid_state"),
         ([], "empty_week"),
@@ -228,3 +230,55 @@ async def test_foreign_device(hass, mock_entry):
             {"device_id": "nope", "entry_id": "x"},
         )
     assert err.value.translation_key == "invalid_device"
+
+
+async def test_stale_hash_refreshes_sensor(hass, mock_entry, fake):
+    device_id = await _setup(hass, mock_entry)
+    entry = fake.program["schedule"][0]["entry"][0]
+    entry["targetState"] = ["0"] if entry["targetState"] != ["0"] else ["2"]
+    stale = _hash(hass)
+    assert stale != program_hash(parse_program(fake.program))
+    with pytest.raises(HomeAssistantError):
+        await _set_day(hass, device_id, 3, [{"time": "07:00", "state": 0}], stale)
+    assert _hash(hass) == program_hash(parse_program(fake.program))
+
+
+async def test_concurrent_writes_serialized(hass, mock_entry, fake):
+    import asyncio
+
+    device_id = await _setup(hass, mock_entry)
+    results = await asyncio.gather(
+        _set_day(hass, device_id, 3, [{"time": "07:00", "state": 0}]),
+        _set_day(hass, device_id, 4, [{"time": "08:00", "state": 0}]),
+        return_exceptions=True,
+    )
+    assert sum(isinstance(r, HomeAssistantError) for r in results) == 1
+    assert [r for r in results if isinstance(r, HomeAssistantError)][0].translation_key == "program_changed"
+
+
+async def test_remove_unknown_vacation(hass, mock_entry, fake):
+    device_id = await _setup(hass, mock_entry)
+    with pytest.raises(ServiceValidationError) as err:
+        await _call(hass, "remove_vacation", {"device_id": device_id, "entry_id": "nope"})
+    assert err.value.translation_key == "unknown_vacation"
+    assert not [r for r in fake.requests if r[1].get("action") == "RemoveHoliday"]
+
+
+async def test_state4_only_at_existing_minute(hass, mock_entry, fake):
+    _with_state4(fake, 2)
+    device_id = await _setup(hass, mock_entry)
+    with pytest.raises(HomeAssistantError) as err:
+        await _set_day(hass, device_id, 2, [{"time": "05:07", "state": 4}])
+    assert err.value.translation_key == "invalid_state"
+
+
+async def test_copy_day_rejects_state4_source(hass, mock_entry, fake):
+    _with_state4(fake, 2)
+    device_id = await _setup(hass, mock_entry)
+    with pytest.raises(HomeAssistantError) as err:
+        await _call(
+            hass,
+            "copy_day",
+            {"device_id": device_id, "source": 2, "targets": [3], "program_hash": _hash(hass)},
+        )
+    assert err.value.translation_key == "invalid_state"

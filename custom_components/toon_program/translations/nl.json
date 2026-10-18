@@ -66,6 +66,9 @@
     },
     "invalid_device": {
       "message": "Dit apparaat hoort niet bij Toon Program."
+    },
+    "unknown_vacation": {
+      "message": "Deze vakantie bestaat niet (meer) op de Toon."
     }
   },
   "services": {

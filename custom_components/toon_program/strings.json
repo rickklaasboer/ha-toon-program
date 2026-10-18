@@ -66,6 +66,9 @@
     },
     "invalid_device": {
       "message": "This device does not belong to Toon Program."
+    },
+    "unknown_vacation": {
+      "message": "This vacation no longer exists on the Toon."
     }
   },
   "services": {
