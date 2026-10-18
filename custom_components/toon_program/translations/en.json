@@ -20,7 +20,7 @@
   "entity": {
     "sensor": {
       "program": {
-        "name": "Week program",
+        "name": "Program",
         "state": {
           "comfort": "Comfort",
           "home": "Home",
@@ -32,7 +32,7 @@
     },
     "switch": {
       "program_enabled": {
-        "name": "Program"
+        "name": "Program enabled"
       }
     }
   },

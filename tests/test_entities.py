@@ -10,8 +10,8 @@ from custom_components.toon_program.program import parse_program, program_hash
 from tests.conftest import PROGRAM_UUID
 from tests.fake_toon import FIXTURES, FakeToon
 
-SENSOR = "sensor.toon_week_program"
-SWITCH = "switch.toon_program"
+SENSOR = "sensor.toon_program"
+SWITCH = "switch.toon_program_enabled"
 
 
 async def _setup(hass, entry):
@@ -105,7 +105,7 @@ async def test_unknown_active_state_is_unknown_and_logged_once(
     await _setup(hass, mock_entry)
     await _refresh(hass, mock_entry)
     assert hass.states.get(SENSOR).state == STATE_UNKNOWN
-    assert caplog.text.count("Unknown active state") == 1
+    assert caplog.text.count("Unknown activeState") == 1
 
 
 async def test_failure_makes_entities_unavailable(hass, mock_entry, fake):
@@ -131,3 +131,14 @@ async def test_missing_info_field_makes_entities_unavailable(
     del fake.info[missing]
     await _refresh(hass, mock_entry)
     assert hass.states.get(SENSOR).state == STATE_UNAVAILABLE
+
+
+async def test_unknown_next_state_is_none_and_logged_once(
+    hass, mock_entry, fake, caplog
+):
+    fake.info["nextState"] = "9"
+    caplog.set_level(logging.WARNING)
+    await _setup(hass, mock_entry)
+    await _refresh(hass, mock_entry)
+    assert hass.states.get(SENSOR).attributes["next_state"] is None
+    assert caplog.text.count("Unknown nextState") == 1

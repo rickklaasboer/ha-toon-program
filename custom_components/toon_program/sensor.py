@@ -38,17 +38,20 @@ class ToonProgramSensor(ToonProgramEntity, SensorEntity):
 
     def __init__(self, coordinator) -> None:
         super().__init__(coordinator, "program")
-        self._warned_state: int | None = None
+        self._warned: set[tuple[str, int]] = set()
+
+    def _state_key(self, field: str) -> str | None:
+        value = int(self.coordinator.data.info[field])
+        if value not in STATE_KEYS:
+            if (field, value) not in self._warned:
+                self._warned.add((field, value))
+                _LOGGER.warning("Unknown %s %s reported by Toon", field, value)
+            return None
+        return STATE_KEYS[value]
 
     @property
     def native_value(self) -> str | None:
-        active = int(self.coordinator.data.info["activeState"])
-        if active not in STATE_KEYS:
-            if self._warned_state != active:
-                self._warned_state = active
-                _LOGGER.warning("Unknown active state %s reported by Toon", active)
-            return None
-        return STATE_KEYS[active]
+        return self._state_key("activeState")
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -59,7 +62,7 @@ class ToonProgramSensor(ToonProgramEntity, SensorEntity):
             "program_hash": program_hash(data.program),
             "states": {str(key): temp for key, temp in data.states.items()},
             "program_enabled": int(info["programState"]) in PROGRAM_ON_STATES,
-            "next_state": STATE_KEYS[int(info["nextState"])],
+            "next_state": self._state_key("nextState"),
             "next_time": _iso(info["nextTime"]),
             "holidays": [
                 {
