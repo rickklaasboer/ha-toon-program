@@ -9,13 +9,13 @@ from typing import Any
 
 import aiohttp
 
-from .program import Program, build_config_xml, parse_program
+from .program import Program, ProgramError, build_config_xml, parse_program
 
 TIMEOUT = aiohttp.ClientTimeout(total=10)
 PROGRAM_ON_STATES = (1, 2)
 VERIFY_ATTEMPTS = 3
 VERIFY_DELAY = 1.0
-BAD_SHAPE = (KeyError, IndexError, TypeError, ValueError)
+BAD_SHAPE = (KeyError, IndexError, TypeError, ValueError, ProgramError)
 
 
 @contextmanager

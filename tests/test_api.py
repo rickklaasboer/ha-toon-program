@@ -9,6 +9,7 @@ from custom_components.toon_program.api import (
     ToonWriteNotApplied,
 )
 from custom_components.toon_program.program import (
+    ProgramError,
     parse_program,
     replace_day,
 )
@@ -179,3 +180,25 @@ async def test_scheme_change_verified_on_retry(fake, make_client):
     fake.delay_scheme_change = True
     await client.set_program_enabled(False, 1)
     assert fake.info["programState"] == "0"
+
+
+async def test_invalid_device_program_raises_api_error(fake, make_client):
+    client = await make_client(fake)
+    del fake.program["schedule"]
+    with pytest.raises(ToonApiError) as exc:
+        await client.get_program()
+    assert isinstance(exc.value.__cause__, ProgramError)
+
+
+async def test_holiday_verified_on_retry(fake, make_client):
+    client = await make_client(fake)
+    original = client.get_holidays
+    calls = []
+
+    async def flaky():
+        calls.append(1)
+        return [] if len(calls) == 1 else await original()
+
+    client.get_holidays = flaky
+    await client.set_holiday(1790000000, 1790100000, 6.0, None)
+    assert len(calls) == 2
