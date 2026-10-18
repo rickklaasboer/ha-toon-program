@@ -118,6 +118,13 @@ async def test_set_and_remove_holiday(fake, make_client):
     assert await client.get_holidays() == []
 
 
+async def test_holiday_temperature_mismatch_raises(fake, make_client):
+    client = await make_client(fake)
+    fake.ignore_setpoint = True
+    with pytest.raises(ToonWriteNotApplied):
+        await client.set_holiday(1790000000, 1790100000, 7.5, None)
+
+
 async def test_holiday_not_applied(fake, make_client):
     client = await make_client(fake)
     fake.ignore_writes = True

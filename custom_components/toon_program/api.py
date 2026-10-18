@@ -152,7 +152,10 @@ class ToonClient:
 
         async def applied() -> bool:
             holidays = await self.get_holidays()
+            states = await self.get_states()
             with _device_shape("holidays"):
+                if round(states[4] * 100) != round(temperature * 100):
+                    return False
                 return any(
                     int(h["startTimeT"]) == start
                     and int(h["endTimeT"]) == end

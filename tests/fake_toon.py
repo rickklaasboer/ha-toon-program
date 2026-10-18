@@ -63,6 +63,7 @@ class FakeToon:
             "randomConfigId": "1",
         }
         self.ignore_writes = False
+        self.ignore_setpoint = False
         self.error: str | None = None
         self.malformed_states = False
         self.delay_scheme_change = False
@@ -182,4 +183,5 @@ class FakeToon:
             if not (e["type"][0] == "holiday" and e["entryId"][0] == entry_id)
         ]
         self.program["schedule"][0]["entry"] = [*entries, entry]
-        self.states["4"] = query["setpoint"]
+        if not self.ignore_setpoint:
+            self.states["4"] = query["setpoint"]
