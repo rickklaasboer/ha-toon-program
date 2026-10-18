@@ -83,7 +83,7 @@ class ToonClient:
                 await asyncio.sleep(VERIFY_DELAY)
             if await check():
                 return
-        raise ToonApiError(f"Toon did not apply {what}")
+        raise ToonWriteNotApplied(f"Toon did not apply {what}")
 
     async def get_program(self) -> Program:
         data = await self._tree("thermostatProgram")
