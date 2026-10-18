@@ -14,9 +14,11 @@ STATE_TEMPS = {"0": "2100", "1": "2000", "2": "1500", "3": "1500", "4": "600"}
 
 
 def _json(body: dict, newline: bool = False) -> web.Response:
-    text = json.dumps(body)
     if newline:
-        text = text.replace(',"', ',\n"', 1)
+        # real GetHolidays body: {"result":"ok",\n"entry": [...]}
+        text = f'{{"result":"ok",\n"entry": {json.dumps(body["entry"])}}}'
+    else:
+        text = json.dumps(body)
     return web.Response(text=text)
 
 
@@ -51,6 +53,9 @@ class FakeToon:
         }
         self.ignore_writes = False
         self.error: str | None = None
+        self.malformed_states = False
+        self.delay_scheme_change = False
+        self._pending_state: str | None = None
         self.requests: list[tuple[str, dict[str, str]]] = []
         self.app = web.Application()
         self.app.router.add_get("/hcb_config", self.hcb_config)
@@ -72,6 +77,8 @@ class FakeToon:
             if query.get("internalAddress") == "thermostatProgram":
                 return _json(self.program)
             if query.get("internalAddress") == "thermostatStates":
+                if self.malformed_states:
+                    return _json({"states": []})
                 return _json(
                     {
                         "states": [
@@ -110,7 +117,11 @@ class FakeToon:
         if self.error:
             return _error(self.error)
         if action == "getThermostatInfo":
-            return _json({**self.info, "result": "ok"})
+            body = {**self.info, "result": "ok"}
+            if self._pending_state is not None:
+                self.info["programState"] = self._pending_state
+                self._pending_state = None
+            return _json(body)
         if action == "GetHolidays":
             entries = [
                 {
@@ -135,7 +146,9 @@ class FakeToon:
                 ]
             return _json({"result": "ok"})
         if action == "changeSchemeState":
-            if not self.ignore_writes:
+            if self.delay_scheme_change:
+                self._pending_state = query["state"]
+            elif not self.ignore_writes:
                 self.info["programState"] = query["state"]
             return _json({"result": "ok"})
         return _error("no handler")

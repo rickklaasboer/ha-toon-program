@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+from contextlib import contextmanager
 import json
 from typing import Any
 
@@ -11,6 +13,18 @@ from .program import Program, build_config_xml, parse_program
 
 TIMEOUT = aiohttp.ClientTimeout(total=10)
 PROGRAM_ON_STATES = (1, 2)
+VERIFY_ATTEMPTS = 3
+VERIFY_DELAY = 1.0
+BAD_SHAPE = (KeyError, IndexError, TypeError, ValueError)
+
+
+@contextmanager
+def _device_shape(what: str):
+    """Turn unexpected device JSON into ToonApiError."""
+    try:
+        yield
+    except BAD_SHAPE as err:
+        raise ToonApiError(f"Toon returned unexpected {what}: {err!r}") from err
 
 
 class ToonApiError(Exception):
@@ -62,21 +76,38 @@ class ToonClient:
             "/happ_thermstat", {"action": action, **params}, has_result=True
         )
 
+    async def _verify(self, check, what: str) -> None:
+        """Toon applies some actions after a short delay: retry the read-back."""
+        for attempt in range(VERIFY_ATTEMPTS):
+            if attempt:
+                await asyncio.sleep(VERIFY_DELAY)
+            if await check():
+                return
+        raise ToonApiError(f"Toon did not apply {what}")
+
     async def get_program(self) -> Program:
-        return parse_program(await self._tree("thermostatProgram"))
+        data = await self._tree("thermostatProgram")
+        with _device_shape("program"):
+            return parse_program(data)
 
     async def get_states(self) -> dict[int, float]:
         data = await self._tree("thermostatStates")
-        return {
-            int(state["id"][0]): int(state["tempValue"][0]) / 100
-            for state in data["states"][0]["state"]
-        }
+        with _device_shape("states"):
+            return {
+                int(state["id"][0]): int(state["tempValue"][0]) / 100
+                for state in data["states"][0]["state"]
+            }
 
     async def get_info(self) -> dict[str, Any]:
         return await self._action("getThermostatInfo")
 
     async def get_holidays(self) -> list[dict]:
-        return (await self._action("GetHolidays"))["entry"]
+        data = await self._action("GetHolidays")
+        with _device_shape("holidays"):
+            entries = data["entry"]
+            if not isinstance(entries, list):
+                raise TypeError("entry is not a list")
+            return entries
 
     async def write_program(self, program: Program) -> None:
         await self._get(
@@ -93,10 +124,13 @@ class ToonClient:
         if not enabled and active_state == 4:
             params["temperatureState"] = 1
         await self._action("changeSchemeState", **params)
-        info = await self.get_info()
-        is_on = int(info["programState"]) in PROGRAM_ON_STATES
-        if is_on != enabled:
-            raise ToonApiError("Toon did not apply the program state")
+
+        async def applied() -> bool:
+            info = await self.get_info()
+            with _device_shape("thermostat info"):
+                return (int(info["programState"]) in PROGRAM_ON_STATES) == enabled
+
+        await self._verify(applied, "program state")
 
     async def set_holiday(
         self, start: int, end: int, temperature: float, entry_id: str | None
@@ -109,16 +143,25 @@ class ToonClient:
         if entry_id is not None:
             params["entryId"] = entry_id
         await self._action("SetHoliday", **params)
-        for holiday in await self.get_holidays():
-            if (
-                int(holiday["startTimeT"]) == start
-                and int(holiday["endTimeT"]) == end
-                and (entry_id is None or holiday["entryId"] == entry_id)
-            ):
-                return
-        raise ToonApiError("Toon did not apply the vacation")
+
+        async def applied() -> bool:
+            holidays = await self.get_holidays()
+            with _device_shape("holidays"):
+                return any(
+                    int(h["startTimeT"]) == start
+                    and int(h["endTimeT"]) == end
+                    and (entry_id is None or h["entryId"] == entry_id)
+                    for h in holidays
+                )
+
+        await self._verify(applied, "vacation")
 
     async def remove_holiday(self, entry_id: str) -> None:
         await self._action("RemoveHoliday", entryId=entry_id)
-        if any(h["entryId"] == entry_id for h in await self.get_holidays()):
-            raise ToonApiError("Toon did not remove the vacation")
+
+        async def removed() -> bool:
+            holidays = await self.get_holidays()
+            with _device_shape("holidays"):
+                return not any(h["entryId"] == entry_id for h in holidays)
+
+        await self._verify(removed, "vacation removal")

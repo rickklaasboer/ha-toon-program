@@ -20,6 +20,11 @@ def _allow_sockets(socket_enabled):
     """Tests talk to a local fake server."""
 
 
+@pytest.fixture(autouse=True)
+def _no_verify_delay(monkeypatch):
+    monkeypatch.setattr("custom_components.toon_program.api.VERIFY_DELAY", 0)
+
+
 @pytest.fixture
 def fake() -> FakeToon:
     return FakeToon()
@@ -145,3 +150,32 @@ async def test_unreachable_raises():
         with pytest.raises(ToonApiError) as exc:
             await client.get_info()
     assert isinstance(exc.value.__cause__, aiohttp.ClientError)
+
+
+async def test_get_holidays_raw_body_has_toon_newline(fake, aiohttp_client):
+    server = await aiohttp_client(fake.app)
+    resp = await server.get("/happ_thermstat", params={"action": "GetHolidays"})
+    assert '"ok",\n"entry"' in await resp.text()
+
+
+async def test_missing_key_raises_api_error(fake, make_client):
+    client = await make_client(fake)
+    fake.ignore_writes = True
+    del fake.info["programState"]
+    with pytest.raises(ToonApiError) as exc:
+        await client.set_program_enabled(True, 1)
+    assert isinstance(exc.value.__cause__, KeyError)
+
+
+async def test_malformed_states_raises_api_error(fake, make_client):
+    client = await make_client(fake)
+    fake.malformed_states = True
+    with pytest.raises(ToonApiError):
+        await client.get_states()
+
+
+async def test_scheme_change_verified_on_retry(fake, make_client):
+    client = await make_client(fake)
+    fake.delay_scheme_change = True
+    await client.set_program_enabled(False, 1)
+    assert fake.info["programState"] == "0"
