@@ -80,7 +80,6 @@ function usable(s: StateLike | undefined): boolean {
   return (
     s !== undefined &&
     s.state !== "unavailable" &&
-    s.state !== "unknown" &&
     Array.isArray(s.attributes.days) &&
     "program_hash" in s.attributes
   );

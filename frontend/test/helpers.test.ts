@@ -73,6 +73,11 @@ describe("resolveProgram", () => {
     const s = { "sensor.toon_program": { state: "unavailable", attributes: {} } };
     expect(resolveProgram(s, entities, undefined)).toEqual({ kind: "unavailable", id: "sensor.toon_program" });
   });
+  it("keeps a sensor with unknown state usable", () => {
+    const s = { "sensor.toon_program": { state: "unknown", attributes: ok.attributes } };
+    expect(resolveProgram(s, entities, undefined)).toEqual({ kind: "ok", id: "sensor.toon_program" });
+    expect(resolveProgram(s, {}, "sensor.toon_program")).toEqual({ kind: "ok", id: "sensor.toon_program" });
+  });
   it("reports a sensor without days as unavailable", () => {
     const s = { "sensor.toon_program": { state: "home", attributes: {} } };
     expect(resolveProgram(s, entities, undefined).kind).toBe("unavailable");
