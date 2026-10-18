@@ -34,6 +34,8 @@ Each Toon is one config entry. The Toon is polled every 60 seconds.
 - `sensor.toon_program`: the active preset (comfort, home, sleep, away, vacation). Attributes hold the week program, the next switch and the program hash used by the card and services.
 - `switch.toon_program_enabled`: turns the Toon's program on or off. A temporary override counts as on.
 
+These are the ids with Home Assistant set to English. Entity ids are created from the translated names, so with Home Assistant in Dutch they are `sensor.toon_weekprogramma` and `switch.toon_programma`.
+
 ## Card
 
 The card is bundled with the integration and registered automatically, no dashboard resource is needed. It shows the week, a day editor (move, add and remove switch times, change presets, copy a day to other days), vacations and the program switch.
@@ -44,6 +46,8 @@ entity: sensor.toon_program
 ```
 
 `entity` is optional. Without it the card uses the first `toon_program` entity. Card text follows the Home Assistant language (Dutch and English).
+
+If the card shows "Configuration error" right after installing, the frontend still runs from a cache made before the integration was added. Reload the page. In the Home Assistant Companion app, use Settings, Companion app, Debugging, Reset frontend cache, then restart the app.
 
 ## Services
 
