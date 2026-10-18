@@ -39,6 +39,73 @@
   "exceptions": {
     "program_state_failed": {
       "message": "Could not change the program state: {error}"
+    },
+    "program_changed": {
+      "message": "The program was changed on the Toon. Refresh and try again."
+    },
+    "write_not_applied": {
+      "message": "The Toon did not accept the change."
+    },
+    "cannot_connect": {
+      "message": "Cannot connect to the Toon."
+    },
+    "empty_week": {
+      "message": "The program must contain at least one time."
+    },
+    "duplicate_time": {
+      "message": "Two times at the same moment."
+    },
+    "invalid_time": {
+      "message": "Invalid time."
+    },
+    "invalid_state": {
+      "message": "Invalid state."
+    },
+    "end_before_start": {
+      "message": "The end of the vacation must be after the start."
+    },
+    "invalid_device": {
+      "message": "This device does not belong to Toon Program."
+    }
+  },
+  "services": {
+    "set_day": {
+      "name": "Set day",
+      "description": "Replaces the switch points of one weekday.",
+      "fields": {
+        "device_id": {"name": "Device", "description": "The Toon."},
+        "day": {"name": "Day", "description": "Weekday, 0 is Sunday and 6 is Saturday."},
+        "points": {"name": "Points", "description": "List of time (HH:MM) and state (0 to 3)."},
+        "program_hash": {"name": "Program hash", "description": "Hash of the program the edit is based on."}
+      }
+    },
+    "copy_day": {
+      "name": "Copy day",
+      "description": "Copies the switch points of one weekday to other weekdays.",
+      "fields": {
+        "device_id": {"name": "Device", "description": "The Toon."},
+        "source": {"name": "Source day", "description": "Weekday to copy from, 0 is Sunday."},
+        "targets": {"name": "Target days", "description": "Weekdays to copy to."},
+        "program_hash": {"name": "Program hash", "description": "Hash of the program the edit is based on."}
+      }
+    },
+    "set_vacation": {
+      "name": "Set vacation",
+      "description": "Sets the vacation period and temperature. An existing vacation is updated.",
+      "fields": {
+        "device_id": {"name": "Device", "description": "The Toon."},
+        "start": {"name": "Start", "description": "Start in local time."},
+        "end": {"name": "End", "description": "End in local time."},
+        "temperature": {"name": "Temperature", "description": "Vacation temperature, 6 to 30 degrees."}
+      }
+    },
+    "remove_vacation": {
+      "name": "Remove vacation",
+      "description": "Removes a vacation period.",
+      "fields": {
+        "device_id": {"name": "Device", "description": "The Toon."},
+        "entry_id": {"name": "Vacation ID", "description": "ID of the vacation to remove."}
+      }
     }
   }
 }
