@@ -28,6 +28,7 @@ function when(iso: string, lang: string): string {
 
 export function vacationView(p: VacationProps): TemplateResult {
   const { t } = p;
+  const editing = p.attrs.holidays.length > 0;
   const field = (label: string, type: string, value: string, key: "from" | "to" | "temp", step?: string) => html`
     <label class="field">${label}
       <input type=${type} step=${step ?? ""} .value=${value} @input=${(e: Event) => p.onField(key, (e.target as HTMLInputElement).value)} />
@@ -53,11 +54,11 @@ export function vacationView(p: VacationProps): TemplateResult {
             </button>
           </div>`,
         )}
-    <h2>${t.newVacation}</h2>
+    <h2>${editing ? t.changeVacation : t.newVacation}</h2>
     ${field(t.from, "datetime-local", p.from, "from")}
     ${field(t.until, "datetime-local", p.to, "to")}
     ${field(t.vacationTemp, "number", p.temp, "temp", "0.5")}
     ${errorBox(p.error)}
-    <button type="button" class="primary wide" ?disabled=${p.busy || !p.from || !p.to || !p.temp} @click=${p.onSubmit}>${t.scheduleVacation}</button>
+    <button type="button" class="primary wide" ?disabled=${p.busy || !p.from || !p.to || !p.temp} @click=${p.onSubmit}>${editing ? t.saveVacation : t.scheduleVacation}</button>
   `;
 }

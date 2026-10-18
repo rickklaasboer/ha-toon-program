@@ -1,4 +1,4 @@
-import type { Point } from "./types";
+import type { Holiday, Point } from "./types";
 
 export interface Segment {
   state: number;
@@ -106,4 +106,31 @@ export function resolveProgram(
 
 export function formatTemp(value: number, lang: string): string {
   return `${value.toLocaleString(lang, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}°`;
+}
+
+function pad(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+export function localInput(d: Date): string {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+export interface VacationForm {
+  from: string;
+  to: string;
+  temp: string;
+}
+
+// An existing vacation is edited in place (the Toon holds one), so prefill with it.
+export function vacationDefaults(holidays: Holiday[], temperature: number, now: Date): VacationForm {
+  const temp = String(temperature);
+  if (holidays.length > 0) {
+    return { from: localInput(new Date(holidays[0].start)), to: localInput(new Date(holidays[0].end)), temp };
+  }
+  const from = new Date(now);
+  from.setMinutes(0, 0, 0);
+  from.setHours(from.getHours() + 1);
+  const to = new Date(from.getTime() + 24 * 3600 * 1000);
+  return { from: localInput(from), to: localInput(to), temp };
 }

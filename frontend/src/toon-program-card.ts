@@ -1,5 +1,5 @@
 import { LitElement, css, html, nothing, type PropertyValues, type TemplateResult } from "lit";
-import { freeTime, resolveProgram, uiDayToToon } from "./helpers";
+import { freeTime, resolveProgram, uiDayToToon, vacationDefaults } from "./helpers";
 import { errorText, fmt, strings, type ServiceError } from "./localize";
 import type { CardConfig, Hass, Point, ProgramAttributes } from "./types";
 import { copyDialog } from "./views/copy-dialog";
@@ -9,14 +9,6 @@ import { vacationView } from "./views/vacation";
 import { weekView } from "./views/week";
 
 type View = "week" | "day" | "vacation";
-
-function pad(n: number): string {
-  return String(n).padStart(2, "0");
-}
-
-function localInput(d: Date): string {
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
 
 function errMessage(e: unknown): string {
   if (e instanceof Error) return e.message;
@@ -180,11 +172,7 @@ export class ToonProgramCard extends LitElement {
 
   private vac(attrs: ProgramAttributes): { from: string; to: string; temp: string } {
     if (this._vac) return this._vac;
-    const from = new Date();
-    from.setMinutes(0, 0, 0);
-    from.setHours(from.getHours() + 1);
-    const to = new Date(from.getTime() + 24 * 3600 * 1000);
-    return { from: localInput(from), to: localInput(to), temp: String(attrs.vacation_temperature) };
+    return vacationDefaults(attrs.holidays, attrs.vacation_temperature, new Date());
   }
 
   private async scheduleVacation(id: string, attrs: ProgramAttributes): Promise<void> {

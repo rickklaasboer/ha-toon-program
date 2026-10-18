@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { barSegments, freeTime, nudge, resolveProgram, toonDayToUi, uiDayToToon } from "../src/helpers";
+import { barSegments, freeTime, nudge, vacationDefaults, resolveProgram, toonDayToUi, uiDayToToon } from "../src/helpers";
 
 describe("barSegments", () => {
   it("splits the wednesday fixture into sleep/home/sleep", () => {
@@ -98,5 +98,20 @@ describe("day mapping", () => {
   it("maps toon day to ui index", () => {
     expect(toonDayToUi(1)).toBe(0);
     expect(toonDayToUi(0)).toBe(6);
+  });
+});
+
+describe("vacationDefaults", () => {
+  it("defaults to the next hour plus 24 h without a vacation", () => {
+    const v = vacationDefaults([], 6, new Date(2026, 9, 18, 13, 7));
+    expect(v).toEqual({ from: "2026-10-18T14:00", to: "2026-10-19T14:00", temp: "6" });
+  });
+  it("prefills with the existing vacation", () => {
+    const h = [{ entry_id: "a", start: "2026-12-20T08:00:00", end: "2027-01-03T18:30:00" }];
+    expect(vacationDefaults(h, 7.5, new Date())).toEqual({
+      from: "2026-12-20T08:00",
+      to: "2027-01-03T18:30",
+      temp: "7.5",
+    });
   });
 });
