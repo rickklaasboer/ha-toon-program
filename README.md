@@ -62,9 +62,47 @@ All services take `device_id`, the Toon device. Days are numbered as the Toon do
 
 States: 0 comfort, 1 home, 2 sleep, 3 away. `program_hash` is the `program_hash` attribute of `sensor.toon_program`. If the program on the Toon changed since that value was read, the call fails and nothing is written.
 
-## How writes are verified
+## How it works
 
-The Toon answers `{"result":"ok"}` even when it ignored a write, so that answer is not trusted. Every write re-reads the program from the Toon and compares it with what was sent. A mismatch raises an error in Home Assistant. Vacation and program on/off changes are verified the same way. Vacation entries in the program are passed through unchanged when the weekly program is written.
+### Where the program lives
+
+The Toon stores its week program as the config object `thermostatProgram` of its `happ_thermstat` package. The program is a closed chain of entries. Each entry has a start (day, hour, minute), an end and a preset (`targetState`), and the last entry of the week runs into the first. A planned vacation is one extra entry of type `holiday` in the same object. The preset temperatures live in a separate object, `thermostatStates`.
+
+### Reading
+
+Every 60 seconds the integration reads, over the Toon's local web API:
+
+- the program and the preset temperatures (`/hcb_config?action=getObjectConfigTree`),
+- the live status: active preset, next switch, program on or off (`/happ_thermstat?action=getThermostatInfo`),
+- the planned vacations (`/happ_thermstat?action=GetHolidays`).
+
+The result is exposed on the program sensor. The card reads everything from that sensor.
+
+### From entries to switch times
+
+The card and the services work with switch times per day, like the Toon's own screen: "from 06:20 Home, from 23:00 Sleep". Each entry's start becomes a switch time on its start day, so the Saturday 23:30 to Sunday 09:30 block belongs to Saturday. A day without switch times keeps the preset that was active at midnight.
+
+When writing, the integration sorts all switch times of the week and turns them back into entries: each one runs until the next switch time, and the last one of the week wraps around to the first. Neighbouring switch times with the same preset are merged.
+
+### Writing
+
+A change goes through these steps, one write at a time:
+
+1. Read the program from the Toon again.
+2. Compare it with the `program_hash` the change was based on. If the program was changed in the meantime (for example on the Toon itself), stop with an error and refresh, so nothing made on the Toon is overwritten.
+3. Apply the change and validate the week: valid times and presets, no two switch times at the same moment, at least one switch time in the week.
+4. Build the XML the way the Toon's own screen does and send it with `/hcb_config?action=setObjectConfig`.
+5. Read the program back and compare it with what was sent.
+
+The last step exists because the Toon answers `{"result":"ok"}` even when it ignored a write, for example when the XML lacks the `<Config>` root or the object's `uuid`. A write also replaces the whole object, so every field that was read is sent back, and vacation entries are passed through unchanged. A mismatch raises an error in Home Assistant.
+
+### Vacations and program switch
+
+Vacations use the Toon's own actions: `SetHoliday` (start, end, temperature), `RemoveHoliday` and `GetHolidays`. Turning the program on or off uses `changeSchemeState`. Both are read back afterwards, a few times with a short pause, because the Toon may apply them with a small delay.
+
+### Card
+
+The card is a single JavaScript file inside the integration. On startup the integration serves it at `/toon_program/toon-program-card.js` and adds it to every page, so no dashboard resource is needed. The card keeps edits local until you save, then calls one service. Errors come back as translated messages. When the program changed on the Toon in the meantime, the card offers to reload.
 
 ## Known limitations
 
