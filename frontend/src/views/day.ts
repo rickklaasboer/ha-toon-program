@@ -19,6 +19,8 @@ export interface DayProps {
   onAdd(): void;
   onCopy(): void;
   onSave(): void;
+  conflict: boolean;
+  onReload(): void;
   onBack(): void;
 }
 
@@ -56,6 +58,9 @@ export function dayView(p: DayProps): TemplateResult {
       <button type="button" class="outline" ?disabled=${p.dirty} title=${p.dirty ? t.copyHint : ""} @click=${p.onCopy}>${t.copyTo}</button>
     </div>
     ${errorBox(p.error)}
+    ${p.error && p.conflict
+      ? html`<button type="button" class="outline" @click=${p.onReload}>${t.reload}</button>`
+      : ""}
     ${p.dirty
       ? html`<div class="savebar">
           <span>${fmt(t.unsaved, { day: t.daysLong[p.uiDay] })}</span>

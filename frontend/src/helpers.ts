@@ -53,6 +53,58 @@ export function barSegments(_day: number, carryIn: number, points: Point[]): Seg
   return segments;
 }
 
+// Default time for a new switch point: next whole hour after the last point, else first free 10-min slot.
+export function freeTime(points: Point[]): string {
+  if (points.length === 0) return "12:00";
+  const taken = new Set(points.map((p) => timeToMin(p.time)));
+  const last = Math.max(...taken);
+  const nextHour = (Math.floor(last / 60) + 1) * 60;
+  if (nextHour <= MAX_POINT_MIN && !taken.has(nextHour)) return minToTime(nextHour);
+  for (let m = 0; m <= MAX_POINT_MIN; m += 10) {
+    if (!taken.has(m)) return minToTime(m);
+  }
+  throw new Error("no free time slot left");
+}
+
+export type Resolved =
+  | { kind: "none" }
+  | { kind: "unavailable"; id: string }
+  | { kind: "ok"; id: string };
+
+interface StateLike {
+  state: string;
+  attributes: Record<string, unknown>;
+}
+
+function usable(s: StateLike | undefined): boolean {
+  return (
+    s !== undefined &&
+    s.state !== "unavailable" &&
+    s.state !== "unknown" &&
+    Array.isArray(s.attributes.days) &&
+    "program_hash" in s.attributes
+  );
+}
+
+// Detection uses the entity registry platform only, so an unavailable sensor is still found.
+export function resolveProgram(
+  states: Record<string, StateLike>,
+  entities: Record<string, { platform: string }>,
+  configured: string | undefined,
+): Resolved {
+  if (configured) {
+    if (!(configured in states)) return { kind: "none" };
+    return usable(states[configured]) ? { kind: "ok", id: configured } : { kind: "unavailable", id: configured };
+  }
+  const ids = Object.keys(entities).filter(
+    (id) => id.startsWith("sensor.") && entities[id].platform === "toon_program",
+  );
+  const good = ids.find((id) => usable(states[id]));
+  if (good) return { kind: "ok", id: good };
+  if (ids.length > 0) return { kind: "unavailable", id: ids[0] };
+  return { kind: "none" };
+}
+
 export function formatTemp(value: number, lang: string): string {
   return `${value.toLocaleString(lang, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}°`;
 }

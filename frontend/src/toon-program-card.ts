@@ -1,5 +1,5 @@
 import { LitElement, css, html, nothing, type PropertyValues, type TemplateResult } from "lit";
-import { uiDayToToon } from "./helpers";
+import { freeTime, resolveProgram, uiDayToToon } from "./helpers";
 import { fmt, strings } from "./localize";
 import type { CardConfig, Hass, Point, ProgramAttributes } from "./types";
 import { copyDialog } from "./views/copy-dialog";
@@ -37,6 +37,7 @@ export class ToonProgramCard extends LitElement {
     _copyOpen: { state: true },
     _busy: { state: true },
     _error: { state: true },
+    _conflict: { state: true },
     _vac: { state: true },
   };
 
@@ -51,6 +52,7 @@ export class ToonProgramCard extends LitElement {
   _copyOpen = false;
   _busy = false;
   _error: string | null = null;
+  _conflict = false;
   _vac: { from: string; to: string; temp: string } | null = null;
 
   setConfig(config: CardConfig): void {
@@ -63,16 +65,6 @@ export class ToonProgramCard extends LitElement {
 
   static getStubConfig(): Partial<CardConfig> {
     return {};
-  }
-
-  private entityId(): string | undefined {
-    if (this._config?.entity) return this._config.entity;
-    return Object.keys(this.hass.states).find((id) => {
-      if (!id.startsWith("sensor.")) return false;
-      if (this.hass.entities[id]?.platform !== "toon_program") return false;
-      const a = this.hass.states[id].attributes;
-      return "days" in a && "program_hash" in a;
-    });
   }
 
   private attrs(id: string): ProgramAttributes {
@@ -99,23 +91,36 @@ export class ToonProgramCard extends LitElement {
   private async call(service: string, data: Record<string, unknown>, id: string): Promise<boolean> {
     this._busy = true;
     this._error = null;
+    this._conflict = false;
     try {
       await this.hass.callService("toon_program", service, { device_id: this.deviceId(id), ...data });
       return true;
     } catch (e) {
       this._error = errMessage(e);
+      const err = e as { translation_key?: string };
+      this._conflict = err.translation_key === "program_changed" || /gewijzigd|changed/i.test(this._error);
       return false;
     } finally {
       this._busy = false;
     }
   }
 
-  private async toggle(id: string, enabled: boolean): Promise<void> {
+  private async toggle(id: string, enabled: boolean, input: HTMLInputElement): Promise<void> {
+    this._error = null;
     try {
       await this.hass.callService("switch", enabled ? "turn_on" : "turn_off", { entity_id: this.switchId(id) });
     } catch (e) {
+      // Lit does not re-apply an unchanged .checked binding, so reset the DOM state by hand.
+      input.checked = !enabled;
       this._error = errMessage(e);
     }
+  }
+
+  private reload(): void {
+    this._draft = null;
+    this._editIdx = null;
+    this._error = null;
+    this._conflict = false;
   }
 
   private selectDay(ui: number): void {
@@ -199,8 +204,10 @@ export class ToonProgramCard extends LitElement {
     if (!this.hass || !this._config) return html``;
     const t = strings(this.hass.language);
     const lang = this.hass.language;
-    const id = this.entityId();
-    if (!id) return html`<ha-card><div class="body hint">${t.noEntity}</div></ha-card>`;
+    const resolved = resolveProgram(this.hass.states, this.hass.entities, this._config.entity);
+    if (resolved.kind === "none") return html`<ha-card><div class="body hint">${t.noEntity}</div></ha-card>`;
+    if (resolved.kind === "unavailable") return html`<ha-card><div class="body error" role="alert">${t.unreachable}</div></ha-card>`;
+    const id = resolved.id;
     const attrs = this.attrs(id);
     const stateKey = this.hass.states[id].state;
 
@@ -237,7 +244,7 @@ export class ToonProgramCard extends LitElement {
         onTab: (ui) => this.tab(ui),
         onEdit: (i) => (this._editIdx = i),
         onAdd: () => {
-          this.setDraft(id, [...pts, { time: "12:00", state: 1 }]);
+          this.setDraft(id, [...pts, { time: freeTime(pts), state: 1 }]);
           this._editIdx = pts.length;
         },
         onCopy: () => {
@@ -245,6 +252,8 @@ export class ToonProgramCard extends LitElement {
           this._copyOpen = true;
         },
         onSave: () => void this.save(id),
+        conflict: this._conflict,
+        onReload: () => this.reload(),
         onBack: () => {
           if (this._draft) {
             if (!window.confirm(fmt(t.discardConfirm, { day: t.daysLong[this._uiDay] }))) return;
@@ -291,18 +300,19 @@ export class ToonProgramCard extends LitElement {
         lang,
         attrs,
         stateKey,
-        onToggle: (on) => void this.toggle(id, on),
+        onToggle: (on, input) => void this.toggle(id, on, input),
         onDay: (ui) => this.selectDay(ui),
         onVacation: () => (this._view = "vacation"),
       });
     }
 
-    return html`<ha-card><div class="body">${body}${this._view === "week" && this._error ? html`<div class="error" role="alert">${this._error}</div>` : nothing}</div>${overlay}</ha-card>`;
+    return html`<ha-card class=${overlay === nothing ? "" : "sheet-open"}><div class="body">${body}${this._view === "week" && this._error ? html`<div class="error" role="alert">${this._error}</div>` : nothing}</div>${overlay}</ha-card>`;
   }
 
   static override styles = css`
     :host { display: block; }
     ha-card { position: relative; overflow: hidden; }
+    ha-card.sheet-open { min-height: 560px; }
     .body { padding: 16px; display: flex; flex-direction: column; gap: 14px; color: var(--primary-text-color); }
     h1, h2 { margin: 0; font-size: 18px; font-weight: 600; }
     button { font: inherit; cursor: pointer; color: inherit; }
@@ -344,7 +354,7 @@ export class ToonProgramCard extends LitElement {
     .savebar span { flex: 1; font-size: 14px; color: var(--secondary-text-color); }
     .error { color: var(--error-color); font-size: 14px; }
     .backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.45); }
-    .sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--card-background-color); border-radius: 16px 16px 0 0; padding: 20px 16px 28px; display: flex; flex-direction: column; gap: 20px; }
+    .sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--card-background-color); border-radius: 16px 16px 0 0; padding: 20px 16px 28px; box-sizing: border-box; max-height: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
     .timepick { display: flex; align-items: center; justify-content: center; gap: 16px; }
     .round { width: 56px; height: 56px; border-radius: 50%; border: 1.5px solid var(--primary-color); background: var(--card-background-color); color: var(--primary-color); font-size: 15px; font-weight: 600; }
     .timefield { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px; color: var(--secondary-text-color); }

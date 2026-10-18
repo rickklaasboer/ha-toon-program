@@ -9,7 +9,7 @@ export interface WeekProps {
   lang: string;
   attrs: ProgramAttributes;
   stateKey: string;
-  onToggle(enabled: boolean): void;
+  onToggle(enabled: boolean, input: HTMLInputElement): void;
   onDay(uiDay: number): void;
   onVacation(): void;
 }
@@ -30,7 +30,7 @@ export function weekView(p: WeekProps): TemplateResult {
         <input
           type="checkbox"
           .checked=${attrs.program_enabled}
-          @change=${(e: Event) => p.onToggle((e.target as HTMLInputElement).checked)}
+          @change=${(e: Event) => p.onToggle((e.target as HTMLInputElement).checked, e.target as HTMLInputElement)}
         />
         ${t.on}
       </label>

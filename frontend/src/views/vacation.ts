@@ -20,13 +20,10 @@ export interface VacationProps {
 }
 
 function when(iso: string, lang: string): string {
-  return new Date(iso).toLocaleString(lang, {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const d = new Date(iso);
+  const date = d.toLocaleDateString(lang, { weekday: "short", day: "numeric", month: "short" });
+  const time = d.toLocaleTimeString(lang, { hour: "2-digit", minute: "2-digit", hour12: false });
+  return `${date} ${time}`;
 }
 
 export function vacationView(p: VacationProps): TemplateResult {
@@ -48,7 +45,7 @@ export function vacationView(p: VacationProps): TemplateResult {
       : p.attrs.holidays.map(
           (h) => html`<div class="holiday">
             <div class="htext">
-              <span class="htitle">${when(h.start, p.lang)} - ${when(h.end, p.lang)}</span>
+              <span class="htitle">${when(h.start, p.lang)} ${t.rangeTo} ${when(h.end, p.lang)}</span>
               <span class="hsub">${t.presets["4"]}, ${formatTemp(p.attrs.vacation_temperature, p.lang)}</span>
             </div>
             <button type="button" class="icon danger" aria-label=${t.removeVacation} ?disabled=${p.busy} @click=${() => p.onRemove(h.entry_id)}>

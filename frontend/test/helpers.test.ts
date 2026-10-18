@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { barSegments, nudge, toonDayToUi, uiDayToToon } from "../src/helpers";
+import { barSegments, freeTime, nudge, resolveProgram, toonDayToUi, uiDayToToon } from "../src/helpers";
 
 describe("barSegments", () => {
   it("splits the wednesday fixture into sleep/home/sleep", () => {
@@ -38,6 +38,51 @@ describe("nudge", () => {
   it("clamps at 00:00", () => expect(nudge("00:05", -10)).toBe("00:00"));
   it("clamps at 23:50", () => expect(nudge("23:50", 10)).toBe("23:50"));
   it("crosses the hour", () => expect(nudge("06:55", 10)).toBe("07:05"));
+});
+
+describe("freeTime", () => {
+  it("picks 12:00 for an empty day", () => expect(freeTime([])).toBe("12:00"));
+  it("picks the next whole hour after the last point", () => {
+    expect(freeTime([{ time: "06:20", state: 1 }])).toBe("07:00");
+  });
+  it("falls back to the first free 10-minute slot", () => {
+    expect(freeTime([{ time: "23:30", state: 1 }])).toBe("00:00");
+    expect(
+      freeTime([
+        { time: "00:00", state: 1 },
+        { time: "23:30", state: 2 },
+      ]),
+    ).toBe("00:10");
+  });
+});
+
+describe("resolveProgram", () => {
+  const ok = { state: "home", attributes: { days: [], program_hash: "x" } };
+  const entities = { "sensor.toon_program": { platform: "toon_program" }, "sensor.other": { platform: "x" } };
+
+  it("returns none without a toon_program sensor", () => {
+    expect(resolveProgram({}, {}, undefined)).toEqual({ kind: "none" });
+  });
+  it("finds an available sensor", () => {
+    expect(resolveProgram({ "sensor.toon_program": ok }, entities, undefined)).toEqual({
+      kind: "ok",
+      id: "sensor.toon_program",
+    });
+  });
+  it("reports an unavailable sensor", () => {
+    const s = { "sensor.toon_program": { state: "unavailable", attributes: {} } };
+    expect(resolveProgram(s, entities, undefined)).toEqual({ kind: "unavailable", id: "sensor.toon_program" });
+  });
+  it("reports a sensor without days as unavailable", () => {
+    const s = { "sensor.toon_program": { state: "home", attributes: {} } };
+    expect(resolveProgram(s, entities, undefined).kind).toBe("unavailable");
+  });
+  it("uses the configured entity", () => {
+    expect(resolveProgram({ "sensor.x": ok }, {}, "sensor.x")).toEqual({ kind: "ok", id: "sensor.x" });
+  });
+  it("returns none for a configured entity that does not exist", () => {
+    expect(resolveProgram({}, {}, "sensor.x")).toEqual({ kind: "none" });
+  });
 });
 
 describe("day mapping", () => {
