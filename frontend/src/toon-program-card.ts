@@ -366,7 +366,11 @@ export class ToonProgramCard extends LitElement {
   `;
 }
 
-customElements.define("toon-program-card", ToonProgramCard);
+// HA's core.js swaps window.customElements for a registry polyfill, and extra modules can run
+// before it. Defining before the swap lands in the native registry, which HA never looks at.
+customElements.whenDefined("home-assistant").then(() => {
+  window.customElements.define("toon-program-card", ToonProgramCard);
+});
 
 const w = window as unknown as { customCards?: Record<string, unknown>[] };
 w.customCards = w.customCards ?? [];
