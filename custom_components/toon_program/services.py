@@ -181,6 +181,7 @@ async def _set_vacation(call: ServiceCall) -> None:
 
 async def _remove_vacation(call: ServiceCall) -> None:
     coordinator = _coordinator(call.hass, call.data["device_id"])
+
     async def action() -> None:
         holidays = await coordinator.client.get_holidays()
         if not any(h["entryId"] == call.data["entry_id"] for h in holidays):

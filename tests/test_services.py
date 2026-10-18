@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import device_registry as dr
@@ -243,17 +245,37 @@ async def test_stale_hash_refreshes_sensor(hass, mock_entry, fake):
     assert _hash(hass) == program_hash(parse_program(fake.program))
 
 
-async def test_concurrent_writes_serialized(hass, mock_entry, fake):
-    import asyncio
-
+async def test_concurrent_writes_serialized(hass, mock_entry, fake, monkeypatch):
     device_id = await _setup(hass, mock_entry)
+    client = mock_entry.runtime_data.client
+    original = client.get_program
+    second_read = asyncio.Event()
+    reads = 0
+
+    async def get_program():
+        nonlocal reads
+        reads += 1
+        first = reads == 1
+        program = await original()
+        if first:
+            # hold the first reader until a second one reads; the lock blocks that, so time out
+            try:
+                await asyncio.wait_for(second_read.wait(), 0.3)
+            except TimeoutError:
+                pass
+        else:
+            second_read.set()
+        return program
+
+    monkeypatch.setattr(client, "get_program", get_program)
     results = await asyncio.gather(
         _set_day(hass, device_id, 3, [{"time": "07:00", "state": 0}]),
         _set_day(hass, device_id, 4, [{"time": "08:00", "state": 0}]),
         return_exceptions=True,
     )
-    assert sum(isinstance(r, HomeAssistantError) for r in results) == 1
-    assert [r for r in results if isinstance(r, HomeAssistantError)][0].translation_key == "program_changed"
+    errors = [r for r in results if isinstance(r, HomeAssistantError)]
+    assert len(errors) == 1
+    assert errors[0].translation_key == "program_changed"
 
 
 async def test_remove_unknown_vacation(hass, mock_entry, fake):
