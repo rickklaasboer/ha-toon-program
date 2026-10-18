@@ -98,7 +98,7 @@ export class ToonProgramCard extends LitElement {
     } catch (e) {
       this._error = errMessage(e);
       const err = e as { translation_key?: string };
-      this._conflict = err.translation_key === "program_changed" || /gewijzigd|changed/i.test(this._error);
+      this._conflict = err.translation_key === "program_changed";
       return false;
     } finally {
       this._busy = false;
@@ -116,6 +116,7 @@ export class ToonProgramCard extends LitElement {
     }
   }
 
+  // Backend refreshes the coordinator before raising program_changed; next edit reads the fresh hash.
   private reload(): void {
     this._draft = null;
     this._editIdx = null;
@@ -244,8 +245,12 @@ export class ToonProgramCard extends LitElement {
         onTab: (ui) => this.tab(ui),
         onEdit: (i) => (this._editIdx = i),
         onAdd: () => {
-          this.setDraft(id, [...pts, { time: freeTime(pts), state: 1 }]);
-          this._editIdx = pts.length;
+          try {
+            this.setDraft(id, [...pts, { time: freeTime(pts), state: 1 }]);
+            this._editIdx = pts.length;
+          } catch (e) {
+            this._error = errMessage(e);
+          }
         },
         onCopy: () => {
           this._error = null;
