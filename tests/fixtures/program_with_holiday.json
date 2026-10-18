@@ -1,0 +1,404 @@
+{
+  "package": [
+    "happ_thermstat"
+  ],
+  "uuid": [
+    "266d7c54-87ce-4139-95d1-e1b5d6b55ce7"
+  ],
+  "type": [
+    "program"
+  ],
+  "internalAddress": [
+    "thermostatProgram"
+  ],
+  "visibility": [
+    "1"
+  ],
+  "schedule": [
+    {
+      "entry": [
+        {
+          "type": [
+            "weekly_recurring"
+          ],
+          "startMin": [
+            "30"
+          ],
+          "startHour": [
+            "9"
+          ],
+          "startDayOfWeek": [
+            "0"
+          ],
+          "targetState": [
+            "1"
+          ],
+          "endMin": [
+            "0"
+          ],
+          "endHour": [
+            "23"
+          ],
+          "endDayOfWeek": [
+            "0"
+          ]
+        },
+        {
+          "type": [
+            "weekly_recurring"
+          ],
+          "startMin": [
+            "0"
+          ],
+          "startHour": [
+            "23"
+          ],
+          "startDayOfWeek": [
+            "0"
+          ],
+          "targetState": [
+            "2"
+          ],
+          "endMin": [
+            "50"
+          ],
+          "endHour": [
+            "6"
+          ],
+          "endDayOfWeek": [
+            "1"
+          ]
+        },
+        {
+          "type": [
+            "weekly_recurring"
+          ],
+          "startMin": [
+            "50"
+          ],
+          "startHour": [
+            "6"
+          ],
+          "startDayOfWeek": [
+            "1"
+          ],
+          "targetState": [
+            "1"
+          ],
+          "endMin": [
+            "0"
+          ],
+          "endHour": [
+            "23"
+          ],
+          "endDayOfWeek": [
+            "1"
+          ]
+        },
+        {
+          "type": [
+            "weekly_recurring"
+          ],
+          "startMin": [
+            "0"
+          ],
+          "startHour": [
+            "23"
+          ],
+          "startDayOfWeek": [
+            "1"
+          ],
+          "targetState": [
+            "2"
+          ],
+          "endMin": [
+            "50"
+          ],
+          "endHour": [
+            "6"
+          ],
+          "endDayOfWeek": [
+            "2"
+          ]
+        },
+        {
+          "type": [
+            "weekly_recurring"
+          ],
+          "startMin": [
+            "50"
+          ],
+          "startHour": [
+            "6"
+          ],
+          "startDayOfWeek": [
+            "2"
+          ],
+          "targetState": [
+            "1"
+          ],
+          "endMin": [
+            "0"
+          ],
+          "endHour": [
+            "23"
+          ],
+          "endDayOfWeek": [
+            "2"
+          ]
+        },
+        {
+          "type": [
+            "weekly_recurring"
+          ],
+          "startMin": [
+            "0"
+          ],
+          "startHour": [
+            "23"
+          ],
+          "startDayOfWeek": [
+            "2"
+          ],
+          "targetState": [
+            "2"
+          ],
+          "endMin": [
+            "20"
+          ],
+          "endHour": [
+            "6"
+          ],
+          "endDayOfWeek": [
+            "3"
+          ]
+        },
+        {
+          "type": [
+            "weekly_recurring"
+          ],
+          "startMin": [
+            "20"
+          ],
+          "startHour": [
+            "6"
+          ],
+          "startDayOfWeek": [
+            "3"
+          ],
+          "targetState": [
+            "1"
+          ],
+          "endMin": [
+            "0"
+          ],
+          "endHour": [
+            "23"
+          ],
+          "endDayOfWeek": [
+            "3"
+          ]
+        },
+        {
+          "type": [
+            "weekly_recurring"
+          ],
+          "startMin": [
+            "0"
+          ],
+          "startHour": [
+            "23"
+          ],
+          "startDayOfWeek": [
+            "3"
+          ],
+          "targetState": [
+            "2"
+          ],
+          "endMin": [
+            "50"
+          ],
+          "endHour": [
+            "6"
+          ],
+          "endDayOfWeek": [
+            "4"
+          ]
+        },
+        {
+          "type": [
+            "weekly_recurring"
+          ],
+          "startMin": [
+            "50"
+          ],
+          "startHour": [
+            "6"
+          ],
+          "startDayOfWeek": [
+            "4"
+          ],
+          "targetState": [
+            "1"
+          ],
+          "endMin": [
+            "0"
+          ],
+          "endHour": [
+            "23"
+          ],
+          "endDayOfWeek": [
+            "4"
+          ]
+        },
+        {
+          "type": [
+            "weekly_recurring"
+          ],
+          "startMin": [
+            "0"
+          ],
+          "startHour": [
+            "23"
+          ],
+          "startDayOfWeek": [
+            "4"
+          ],
+          "targetState": [
+            "2"
+          ],
+          "endMin": [
+            "50"
+          ],
+          "endHour": [
+            "6"
+          ],
+          "endDayOfWeek": [
+            "5"
+          ]
+        },
+        {
+          "type": [
+            "weekly_recurring"
+          ],
+          "startMin": [
+            "50"
+          ],
+          "startHour": [
+            "6"
+          ],
+          "startDayOfWeek": [
+            "5"
+          ],
+          "targetState": [
+            "1"
+          ],
+          "endMin": [
+            "30"
+          ],
+          "endHour": [
+            "23"
+          ],
+          "endDayOfWeek": [
+            "5"
+          ]
+        },
+        {
+          "type": [
+            "weekly_recurring"
+          ],
+          "startMin": [
+            "30"
+          ],
+          "startHour": [
+            "23"
+          ],
+          "startDayOfWeek": [
+            "5"
+          ],
+          "targetState": [
+            "2"
+          ],
+          "endMin": [
+            "0"
+          ],
+          "endHour": [
+            "7"
+          ],
+          "endDayOfWeek": [
+            "6"
+          ]
+        },
+        {
+          "type": [
+            "weekly_recurring"
+          ],
+          "startMin": [
+            "0"
+          ],
+          "startHour": [
+            "7"
+          ],
+          "startDayOfWeek": [
+            "6"
+          ],
+          "targetState": [
+            "1"
+          ],
+          "endMin": [
+            "30"
+          ],
+          "endHour": [
+            "23"
+          ],
+          "endDayOfWeek": [
+            "6"
+          ]
+        },
+        {
+          "type": [
+            "weekly_recurring"
+          ],
+          "startMin": [
+            "30"
+          ],
+          "startHour": [
+            "23"
+          ],
+          "startDayOfWeek": [
+            "6"
+          ],
+          "targetState": [
+            "2"
+          ],
+          "endMin": [
+            "30"
+          ],
+          "endHour": [
+            "9"
+          ],
+          "endDayOfWeek": [
+            "0"
+          ]
+        },
+        {
+          "type": [
+            "holiday"
+          ],
+          "startTimeT": [
+            "1811833200"
+          ],
+          "endTimeT": [
+            "1811919600"
+          ],
+          "targetState": [
+            "4"
+          ],
+          "entryId": [
+            "a44582e5-536e-4542-bc32-1a8b69cec776"
+          ]
+        }
+      ]
+    }
+  ]
+}

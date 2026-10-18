@@ -1,0 +1,13 @@
+{
+  "domain": "toon_program",
+  "name": "Toon Program",
+  "codeowners": ["@rickklaasboer"],
+  "config_flow": true,
+  "dependencies": ["http", "frontend"],
+  "documentation": "https://github.com/rickklaasboer/ha-toon-program",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/rickklaasboer/ha-toon-program/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

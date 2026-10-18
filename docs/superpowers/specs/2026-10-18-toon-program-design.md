@@ -88,6 +88,9 @@ Returns JSON where every XML value is a one-element array:
   Writing `type` only as element was accepted and persisted but deviates from the Toon's own
   format; do not do that.
 - The write replaces the whole `schedule`. Any entry not sent (including vacation entries) is gone.
+- The write replaces the whole config object: any top-level field not sent is deleted (seen with
+  `statesSaved` on `thermostatStates`). Pass through every field that was read.
+- The object's `uuid` is required: without it the Toon answers `ok` and changes nothing.
 - GET with the full program (14 entries) is ~3.3 KB XML, well within URL limits. If a much
   larger program fails over GET, the builder may test POST; not verified.
 

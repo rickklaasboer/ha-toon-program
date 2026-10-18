@@ -1,0 +1,114 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Toon Program",
+        "description": "Verbind met de Toon in je lokale netwerk.",
+        "data": {
+          "host": "Host",
+          "port": "Poort"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Geen verbinding met de Toon, of de Toon gaf een onverwacht programma terug."
+    },
+    "abort": {
+      "already_configured": "Deze Toon is al ingesteld."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "program": {
+        "name": "Weekprogramma",
+        "state": {
+          "comfort": "Comfort",
+          "home": "Thuis",
+          "sleep": "Slapen",
+          "away": "Weg",
+          "vacation": "Vakantie"
+        }
+      }
+    },
+    "switch": {
+      "program_enabled": {
+        "name": "Programma"
+      }
+    }
+  },
+  "exceptions": {
+    "program_state_failed": {
+      "message": "Het programma kon niet worden aangepast: {error}"
+    },
+    "program_changed": {
+      "message": "Het programma is op de Toon gewijzigd. Ververs en probeer opnieuw."
+    },
+    "write_not_applied": {
+      "message": "De Toon heeft de wijziging niet overgenomen."
+    },
+    "cannot_connect": {
+      "message": "De Toon is niet bereikbaar."
+    },
+    "empty_week": {
+      "message": "Het programma moet minstens één tijd bevatten."
+    },
+    "duplicate_time": {
+      "message": "Twee tijden op hetzelfde moment."
+    },
+    "invalid_time": {
+      "message": "Ongeldige tijd."
+    },
+    "invalid_state": {
+      "message": "Ongeldige stand."
+    },
+    "end_before_start": {
+      "message": "Het einde van de vakantie moet na het begin liggen."
+    },
+    "invalid_device": {
+      "message": "Dit apparaat hoort niet bij Toon Program."
+    },
+    "unknown_vacation": {
+      "message": "Deze vakantie bestaat niet (meer) op de Toon."
+    }
+  },
+  "services": {
+    "set_day": {
+      "name": "Dag instellen",
+      "description": "Vervangt de schakelmomenten van één weekdag.",
+      "fields": {
+        "device_id": {"name": "Apparaat", "description": "De Toon."},
+        "day": {"name": "Dag", "description": "Weekdag, 0 is zondag en 6 is zaterdag."},
+        "points": {"name": "Momenten", "description": "Lijst met tijd (UU:MM) en stand (0 tot 3)."},
+        "program_hash": {"name": "Programma-hash", "description": "Hash van het programma waarop de wijziging is gebaseerd."}
+      }
+    },
+    "copy_day": {
+      "name": "Dag kopiëren",
+      "description": "Kopieert de schakelmomenten van één weekdag naar andere weekdagen.",
+      "fields": {
+        "device_id": {"name": "Apparaat", "description": "De Toon."},
+        "source": {"name": "Brondag", "description": "Weekdag om van te kopiëren, 0 is zondag."},
+        "targets": {"name": "Doeldagen", "description": "Weekdagen om naar te kopiëren."},
+        "program_hash": {"name": "Programma-hash", "description": "Hash van het programma waarop de wijziging is gebaseerd."}
+      }
+    },
+    "set_vacation": {
+      "name": "Vakantie instellen",
+      "description": "Stelt de vakantieperiode en temperatuur in. Een bestaande vakantie wordt aangepast.",
+      "fields": {
+        "device_id": {"name": "Apparaat", "description": "De Toon."},
+        "start": {"name": "Begin", "description": "Begin in lokale tijd."},
+        "end": {"name": "Einde", "description": "Einde in lokale tijd."},
+        "temperature": {"name": "Temperatuur", "description": "Vakantietemperatuur, 6 tot 30 graden."}
+      }
+    },
+    "remove_vacation": {
+      "name": "Vakantie verwijderen",
+      "description": "Verwijdert een vakantieperiode.",
+      "fields": {
+        "device_id": {"name": "Apparaat", "description": "De Toon."},
+        "entry_id": {"name": "Vakantie-ID", "description": "ID van de vakantie die verwijderd wordt."}
+      }
+    }
+  }
+}

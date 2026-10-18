@@ -1,0 +1,78 @@
+set_day:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: toon_program
+    day:
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 6
+          mode: box
+    points:
+      required: true
+      selector:
+        object:
+    program_hash:
+      required: true
+      selector:
+        text:
+copy_day:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: toon_program
+    source:
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 6
+          mode: box
+    targets:
+      required: true
+      selector:
+        object:
+    program_hash:
+      required: true
+      selector:
+        text:
+set_vacation:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: toon_program
+    start:
+      required: true
+      selector:
+        datetime:
+    end:
+      required: true
+      selector:
+        datetime:
+    temperature:
+      required: true
+      selector:
+        number:
+          min: 6
+          max: 30
+          step: 0.5
+          unit_of_measurement: "°C"
+remove_vacation:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: toon_program
+    entry_id:
+      required: true
+      selector:
+        text:
