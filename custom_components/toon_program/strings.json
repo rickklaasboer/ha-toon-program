@@ -1,0 +1,44 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Toon Program",
+        "description": "Connect to the Toon on your local network.",
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to the Toon, or it returned an unexpected program."
+    },
+    "abort": {
+      "already_configured": "This Toon is already configured."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "program": {
+        "name": "Week program",
+        "state": {
+          "comfort": "Comfort",
+          "home": "Home",
+          "sleep": "Sleep",
+          "away": "Away",
+          "vacation": "Vacation"
+        }
+      }
+    },
+    "switch": {
+      "program_enabled": {
+        "name": "Program"
+      }
+    }
+  },
+  "exceptions": {
+    "program_state_failed": {
+      "message": "Could not change the program state: {error}"
+    }
+  }
+}

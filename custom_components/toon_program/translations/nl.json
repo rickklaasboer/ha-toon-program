@@ -1,0 +1,44 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Toon Program",
+        "description": "Verbind met de Toon in je lokale netwerk.",
+        "data": {
+          "host": "Host",
+          "port": "Poort"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Geen verbinding met de Toon, of de Toon gaf een onverwacht programma terug."
+    },
+    "abort": {
+      "already_configured": "Deze Toon is al ingesteld."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "program": {
+        "name": "Weekprogramma",
+        "state": {
+          "comfort": "Comfort",
+          "home": "Thuis",
+          "sleep": "Slapen",
+          "away": "Weg",
+          "vacation": "Vakantie"
+        }
+      }
+    },
+    "switch": {
+      "program_enabled": {
+        "name": "Programma"
+      }
+    }
+  },
+  "exceptions": {
+    "program_state_failed": {
+      "message": "Het programma kon niet worden aangepast: {error}"
+    }
+  }
+}

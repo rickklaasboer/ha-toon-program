@@ -7,3 +7,5 @@ STATE_AWAY = 3
 STATE_VACATION = 4
 
 EDITABLE_STATES = (0, 1, 2, 3)
+
+STATE_KEYS = {0: "comfort", 1: "home", 2: "sleep", 3: "away", 4: "vacation"}
