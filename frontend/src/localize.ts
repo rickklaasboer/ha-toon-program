@@ -40,6 +40,19 @@ const nl = {
   presets: { "0": "Comfort", "1": "Thuis", "2": "Slapen", "3": "Weg", "4": "Vakantie" },
   daysShort: ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"],
   daysLong: ["maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag", "zondag"],
+  errors: {
+    program_state_failed: "Het programma kon niet worden aangepast: {error}",
+    program_changed: "Het programma is op de Toon gewijzigd. Ververs en probeer opnieuw.",
+    write_not_applied: "De Toon heeft de wijziging niet overgenomen.",
+    cannot_connect: "De Toon is niet bereikbaar.",
+    empty_week: "Het programma moet minstens één tijd bevatten.",
+    duplicate_time: "Twee tijden op hetzelfde moment.",
+    invalid_time: "Ongeldige tijd.",
+    invalid_state: "Ongeldige stand.",
+    end_before_start: "Het einde van de vakantie moet na het begin liggen.",
+    invalid_device: "Dit apparaat hoort niet bij Toon Program.",
+    unknown_vacation: "Deze vakantie bestaat niet (meer) op de Toon.",
+  } as Record<string, string>,
   cardName: "Toon weekprogramma",
   cardDescription: "Bekijk en bewerk het weekprogramma van je Toon.",
 };
@@ -86,6 +99,19 @@ const en: typeof nl = {
   presets: { "0": "Comfort", "1": "Home", "2": "Sleep", "3": "Away", "4": "Vacation" },
   daysShort: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
   daysLong: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+  errors: {
+    program_state_failed: "Could not change the program state: {error}",
+    program_changed: "The program was changed on the Toon. Refresh and try again.",
+    write_not_applied: "The Toon did not accept the change.",
+    cannot_connect: "Cannot connect to the Toon.",
+    empty_week: "The program must contain at least one time.",
+    duplicate_time: "Two times at the same moment.",
+    invalid_time: "Invalid time.",
+    invalid_state: "Invalid state.",
+    end_before_start: "The end of the vacation must be after the start.",
+    invalid_device: "This device does not belong to Toon Program.",
+    unknown_vacation: "This vacation no longer exists on the Toon.",
+  } as Record<string, string>,
   cardName: "Toon week program",
   cardDescription: "View and edit the week program of your Toon.",
 };
@@ -112,3 +138,16 @@ export const STATE_COLORS: Record<number, string> = {
   3: "#a9b0b8",
   4: "#6b8f71",
 };
+
+export interface ServiceError {
+  message?: string;
+  translation_key?: string;
+  translation_placeholders?: Record<string, string>;
+}
+
+// Backend messages are English only; map the exception key to the card language.
+export function errorText(t: Strings, err: ServiceError): string {
+  const template = err.translation_key ? t.errors[err.translation_key] : undefined;
+  if (template === undefined) return err.message ?? String(err);
+  return fmt(template, err.translation_placeholders ?? {});
+}

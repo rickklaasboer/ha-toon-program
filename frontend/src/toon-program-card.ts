@@ -1,6 +1,6 @@
 import { LitElement, css, html, nothing, type PropertyValues, type TemplateResult } from "lit";
 import { freeTime, resolveProgram, uiDayToToon } from "./helpers";
-import { fmt, strings } from "./localize";
+import { errorText, fmt, strings, type ServiceError } from "./localize";
 import type { CardConfig, Hass, Point, ProgramAttributes } from "./types";
 import { copyDialog } from "./views/copy-dialog";
 import { dayView } from "./views/day";
@@ -96,8 +96,8 @@ export class ToonProgramCard extends LitElement {
       await this.hass.callService("toon_program", service, { device_id: this.deviceId(id), ...data });
       return true;
     } catch (e) {
-      this._error = errMessage(e);
-      const err = e as { translation_key?: string };
+      const err = e as ServiceError;
+      this._error = errorText(strings(this.hass.language), err);
       this._conflict = err.translation_key === "program_changed";
       return false;
     } finally {
@@ -112,7 +112,7 @@ export class ToonProgramCard extends LitElement {
     } catch (e) {
       // Lit does not re-apply an unchanged .checked binding, so reset the DOM state by hand.
       input.checked = !enabled;
-      this._error = errMessage(e);
+      this._error = errorText(strings(this.hass.language), e as ServiceError);
     }
   }
 
