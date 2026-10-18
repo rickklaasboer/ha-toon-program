@@ -155,3 +155,35 @@ def test_parse_missing_uuid_raises():
     with pytest.raises(ProgramError) as exc:
         parse_program(data)
     assert exc.value.key == "missing_field"
+
+
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [("package", "other"), ("type", "other"), ("internalAddress", "other")],
+)
+def test_parse_rejects_wrong_header(key, value):
+    data = load("program_zwolle.json")
+    data[key] = [value]
+    with pytest.raises(ProgramError) as exc:
+        parse_program(data)
+    assert exc.value.key == "unexpected_value"
+
+
+@pytest.mark.parametrize("missing", ["schedule", "entry"])
+def test_parse_missing_schedule_or_entry(missing):
+    data = load("program_zwolle.json")
+    if missing == "schedule":
+        del data["schedule"]
+    else:
+        del data["schedule"][0]["entry"]
+    with pytest.raises(ProgramError) as exc:
+        parse_program(data)
+    assert exc.value.key == "missing_field"
+
+
+def test_visibility_kept():
+    data = load("program_zwolle.json")
+    data["visibility"] = ["0"]
+    program = parse_program(data)
+    assert program.visibility == "0"
+    assert "<visibility>0</visibility>" in build_config_xml(program)

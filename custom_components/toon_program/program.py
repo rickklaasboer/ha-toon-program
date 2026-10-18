@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import hashlib
 import json
 from xml.sax.saxutils import escape
@@ -11,6 +11,11 @@ DAYS = 7
 MINUTES_PER_DAY = 1440
 WEEKLY = "weekly_recurring"
 HEADER_KEYS = ("package", "uuid", "type", "internalAddress", "visibility")
+FIXED_HEADER = {
+    "package": "happ_thermstat",
+    "type": "program",
+    "internalAddress": "thermostatProgram",
+}
 MAX_STATE = 4
 
 
@@ -35,6 +40,7 @@ class Program:
     weekly: tuple[SwitchPoint, ...]
     other_entries: tuple[dict, ...]
     extra: tuple[tuple[str, str], ...] = ()
+    visibility: str = "1"
 
 
 def _single(value: object) -> str:
@@ -45,6 +51,11 @@ def _single(value: object) -> str:
 
 def parse_program(data: dict) -> Program:
     if any(key not in data for key in HEADER_KEYS):
+        raise ProgramError("missing_field")
+    for key, expected in FIXED_HEADER.items():
+        if _single(data[key]) != expected:
+            raise ProgramError("unexpected_value")
+    if "schedule" not in data or "entry" not in data["schedule"][0]:
         raise ProgramError("missing_field")
     extra = tuple(
         (key, _single(value))
@@ -65,7 +76,9 @@ def parse_program(data: dict) -> Program:
         else:
             other.append(entry)
     weekly.sort(key=lambda p: (p.day, p.minute))
-    return Program(data["uuid"][0], tuple(weekly), tuple(other), extra)
+    return Program(
+        data["uuid"][0], tuple(weekly), tuple(other), extra, _single(data["visibility"])
+    )
 
 
 def _merge(points: list[SwitchPoint]) -> tuple[SwitchPoint, ...]:
@@ -96,7 +109,7 @@ def days_view(program: Program) -> list[dict]:
 def replace_day(program: Program, day: int, points: list[tuple[int, int]]) -> Program:
     weekly = [p for p in program.weekly if p.day != day]
     weekly += [SwitchPoint(day, minute, state) for minute, state in points]
-    return Program(program.uuid, _merge(weekly), program.other_entries, program.extra)
+    return replace(program, weekly=_merge(weekly))
 
 
 def copy_day(program: Program, source: int, targets: list[int]) -> Program:
@@ -157,6 +170,6 @@ def build_config_xml(program: Program) -> str:
         "<Config><device><package>happ_thermstat</package>"
         f"<uuid>{escape(program.uuid)}</uuid><type>program</type>"
         "<internalAddress>thermostatProgram</internalAddress>"
-        f"<visibility>1</visibility>{extra}<schedule>{''.join(entries)}</schedule>"
+        f"<visibility>{escape(program.visibility)}</visibility>{extra}<schedule>{''.join(entries)}</schedule>"
         "</device></Config>"
     )
